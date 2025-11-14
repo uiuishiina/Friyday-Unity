@@ -85,6 +85,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Space",
+                    "type": "Button",
+                    "id": "fbcc8c4b-88d4-4b58-9e1d-32c6aa2f46ac",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Hold",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -470,6 +479,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Crouch",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c2b2d916-598e-4e45-8292-41c332fe7ea7",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Space",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
