@@ -1,25 +1,27 @@
 using System.Collections;
 using System.Globalization;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 public class player_Script : MonoBehaviour
 {
     //-----------    参照   ------------------
     [SerializeField] GameObject Hole;
-    [SerializeField] Front_Script Front;
+    [SerializeField] GameObject Front;
+    [SerializeField] Front_Script Front_cs;
     [SerializeField] GameObject Body;
     [SerializeField] GameManager GameManager;
-
+    [SerializeField] Animator Anime;
     Rigidbody rb;
-
     //-----------    移動   -------------------
     Vector2 Inputvec = new Vector2();
     Vector3 Movevec = new Vector3();
     [SerializeField, Header("速度")] float speed = 0.0f;
+    [SerializeField, Header("回転速度")] float rote = 0.0f;
     //-----------    掘る   -------------------
     GameObject ChackHole = null;
-    bool IsFrontChack = false;
     bool IsDig = false;
+    bool end = false;
     //------------コルーチン-------------------
     private IEnumerator UseCol = null;
     private IEnumerator Value = null;
@@ -41,14 +43,14 @@ public class player_Script : MonoBehaviour
 
     private void OnDigp(InputAction.CallbackContext context)
     {
-        IsFrontChack = Front.Chack();
-        if (IsFrontChack)
+        GameObject g = null;
+        if (Front_cs.Chack())
         {
-            if (Front.Wall)
-            {
+            Debug.Log("d");
+            if (Front_cs.Wall){
                 return;
             }
-            ChackHole = Front.Hole;
+            ChackHole = Front_cs.Hole;
             if (ChackHole.transform.localScale.x >= 1)
             {
                 //埋めるコルーチン
@@ -56,9 +58,13 @@ public class player_Script : MonoBehaviour
                 StartCoroutine(UseCol);
                 return;
             }
+            else
+            {
+                g = ChackHole;
+            }
         }
         //掘るコルーチン
-        UseCol = Dig(ChackHole);
+        UseCol = Dig(g);
         StartCoroutine(UseCol);
         return;
     }
@@ -76,39 +82,78 @@ public class player_Script : MonoBehaviour
         else{
             rb.linearVelocity = new Vector3();
         }
-        
-        //-----------------------------------------
-    }
 
+        //-----------------------------------------
+        if(!IsDig){
+            if (Inputvec.magnitude > 0.1f){
+                var a = Mathf.Atan2(Inputvec.x, Inputvec.y) * Mathf.Rad2Deg;
+                var q = Quaternion.Euler(0, a, 0);
+                Body.transform.localRotation = Quaternion.RotateTowards(Body.transform.localRotation, q, rote);
+            }
+        }
+        //-----------------------------------------
+        var s = rb.linearVelocity.magnitude;
+        Anime.SetFloat("Speed", s);
+        Anime.SetBool("IsDigging", IsDig);
+    }
+    //----------------　掘る　---------------------
     IEnumerator Dig(GameObject h)
     {
-        Value = ValueCol(1);
-        Debug.Log("s");
+        IsDig = true;
+        if (h == null) { 
+            h = Instantiate(Hole, Front.transform.position, Quaternion.identity);
+            h.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+        }
+        Value = ValueCol(1,h);
         yield return StartCoroutine(Value);
+        h.transform.localScale = new Vector3(1, 1, 1);
+        h.gameObject.GetComponent<CapsuleCollider>().isTrigger = false;
         yield break;
     }
-
-    IEnumerator Fill(GameObject h)
+    //---------------　埋める　---------------------
+    IEnumerator Fill( GameObject h )
     {
-        Value = ValueCol(-1);
-        Debug.Log("e");
+        IsDig = true;
+        end = true;
+        h.transform.localScale = new Vector3(1, 1, 1);
+        Value = ValueCol(-1,h);
         yield return StartCoroutine(Value);
+        end = false;
+        h.GetComponent<Hole_Script>().D(gameObject);
         yield break;
     }
-    IEnumerator ValueCol(int v)
+    //--------------　拡大・縮小　-------------------
+    IEnumerator ValueCol(int v, GameObject h )
     {
         for (int i = 0; i < 10; i++)
         {
-            Debug.Log("x");
+            h.transform.localScale += new Vector3(0.1f * v, 0.1f * v, 0.1f * v);
+            if(h.transform.localScale.x >= 1){
+                yield break;
+            }
             yield return new WaitForSeconds(0.2f);
         }
         yield break;
     }
-
+    //---------------　終了関数　--------------------
     void EndCol()
     {
         StopAllCoroutines();
+        IsDig = false;
         UseCol = null;
         Value = null;
+        if (ChackHole){
+            if (end) {
+                ChackHole.transform.localScale = new Vector3(1, 1, 1);
+            }
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject.tag == "Enemy")
+        {
+            GameManager.Check(this.gameObject);
+        }
     }
 }
